@@ -50,6 +50,7 @@ export interface UserSignupConfirmFormProps {
   token: string;
   username: string;
   email: string;
+  orgUserId: string;
   locale: string;
   dictionary: {
     forms: {
@@ -72,7 +73,6 @@ export interface UserSignupConfirmFormProps {
         minLength: string;
         uppercase: string;
         lowercase: string;
-        number: string;
         special: string;
       };
       confirmPassword: {
@@ -102,6 +102,7 @@ export default function UserSignupConfirmForm({
   token,
   username,
   email,
+  orgUserId,
   locale,
   dictionary,
 }: UserSignupConfirmFormProps) {
@@ -138,22 +139,31 @@ export default function UserSignupConfirmForm({
 
     try {
       // Call API to complete user signup
-      await confirmUserSignup({
+      const result = await confirmUserSignup({
         org: organization,
         token,
         username,
+        email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
+        orgUserId,
       });
 
-      // Show success state
-      setIsSuccess(true);
+      // Check if API call was successful
+      if (result.success) {
+        // Show success state
+        setIsSuccess(true);
 
-      // Optional: Redirect to login after 5 seconds
-      setTimeout(() => {
-        // router.push(`/${locale}/login`);
-      }, 5000);
+        // Optional: Redirect to login after 5 seconds
+        setTimeout(() => {
+          // router.push(`/${locale}/login`);
+        }, 5000);
+      } else {
+        // API returned error
+        const errorMessage = result.error?.message || dictionary.errors.apiError;
+        setApiError(errorMessage);
+      }
     } catch (err: any) {
       console.error('User signup failed:', err);
 
@@ -213,25 +223,6 @@ export default function UserSignupConfirmForm({
             <p className="text-gray-600">
               Your account has been created successfully. You can now log in with your credentials.
             </p>
-          </div>
-
-          {/* Next Steps */}
-          <div className="pt-4 space-y-2">
-            <p className="text-sm text-gray-500">Redirecting to login page in a few seconds...</p>
-            <div className="flex items-center justify-center gap-2">
-              <div
-                className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                style={{ animationDelay: '0ms' }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                style={{ animationDelay: '150ms' }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                style={{ animationDelay: '300ms' }}
-              ></div>
-            </div>
           </div>
         </div>
       </div>
@@ -328,10 +319,6 @@ export default function UserSignupConfirmForm({
             <li className="flex items-start gap-2">
               <span className="mt-0.5">•</span>
               <span>{dictionary.validation.password.lowercase}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-0.5">•</span>
-              <span>{dictionary.validation.password.number}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-0.5">•</span>

@@ -1,14 +1,17 @@
 /**
  * Forgot Password Page
  *
- * Route: /[locale]/[organization]/forgot-password/[token]
- * Query params: data (base64 encoded JSON with username, email)
+ * Route: /[organization]/forgot-password/[token]
+ * Query params:
+ *   - lang: Language selection (en or th)
+ *   - data: Base64 encoded JSON with username, email
  *
  * This page:
  * 1. Parses the URL to extract organization, token, and data parameter
  * 2. Decodes and validates the data parameter
  * 3. Renders ForgotPasswordForm with pre-populated data
  * 4. Handles errors (invalid token, expired link, malformed data)
+ * 5. Uses searchParams for locale detection (?lang=en or ?lang=th)
  */
 
 import React from 'react';
@@ -16,24 +19,23 @@ import { notFound } from 'next/navigation';
 import ForgotPasswordForm from '@/components/forms/ForgotPasswordForm';
 import { decodeDataParam } from '@/lib/url-parser';
 import { usernameSchema, emailSchema } from '@/lib/validation';
-import { getDictionary } from '@/i18n';
-import type { Locale } from '@/i18n';
+import { getDictionary, getLocaleFromSearchParams } from '@/i18n';
 import { z } from 'zod';
 
 // Schema for forgot password data
 const forgotPasswordDataSchema = z.object({
   username: usernameSchema,
   email: emailSchema,
+  orgUserId: z.string().uuid('Organization User ID must be a valid UUID').optional(),
 });
 
 interface ForgotPasswordPageProps {
   params: Promise<{
-    locale: Locale;
     organization: string;
     token: string;
   }>;
   searchParams: Promise<{
-    data?: string;
+    [key: string]: string | string[] | undefined;
   }>;
 }
 
@@ -42,8 +44,14 @@ export default async function ForgotPasswordPage({
   searchParams,
 }: ForgotPasswordPageProps) {
   // Await params and searchParams (Next.js 16 requirement)
-  const { locale, organization, token } = await params;
-  const { data: dataParam } = await searchParams;
+  const { organization, token } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  // Get locale from searchParams
+  const locale = getLocaleFromSearchParams(resolvedSearchParams);
+  const dataParam = Array.isArray(resolvedSearchParams.data)
+    ? resolvedSearchParams.data[0]
+    : resolvedSearchParams.data;
 
   // Get dictionary for i18n
   const dictionary = await getDictionary(locale);
@@ -71,7 +79,7 @@ export default async function ForgotPasswordPage({
 
   try {
     // Decode the data parameter
-    const parseResult = decodeDataParam(dataParam);
+    const parseResult = decodeDataParam(dataParam, 'forgot-password');
     if (!parseResult.success) {
       console.error('Failed to decode data parameter:', parseResult.error);
       return (
@@ -119,7 +127,7 @@ export default async function ForgotPasswordPage({
       );
     }
 
-    const { username, email } = validationResult.data;
+    const { username, email, orgUserId } = validationResult.data;
 
     // Validate token format (should be UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -152,6 +160,7 @@ export default async function ForgotPasswordPage({
           token={token}
           username={username}
           email={email}
+          orgUserId={orgUserId || token}
           locale={locale}
           dictionary={dictionary}
         />
@@ -180,8 +189,13 @@ export default async function ForgotPasswordPage({
 }
 
 // Metadata for the page
-export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
-  const { locale } = await params;
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const locale = getLocaleFromSearchParams(resolvedSearchParams);
   const dictionary = await getDictionary(locale);
 
   return {

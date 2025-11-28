@@ -14,7 +14,6 @@
  */
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { confirmEmailVerification } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
 import { ReadOnlyField } from '@/components/ui/ReadOnlyField';
@@ -22,7 +21,7 @@ import { ReadOnlyField } from '@/components/ui/ReadOnlyField';
 export interface CustomerEmailVerificationFormProps {
   organization: string;
   token: string;
-  customerId: string;
+  custId: string;
   name: string;
   email: string;
   locale: string;
@@ -51,13 +50,12 @@ export interface CustomerEmailVerificationFormProps {
 export default function CustomerEmailVerificationForm({
   organization,
   token,
-  customerId,
+  custId,
   name,
   email,
   locale,
   dictionary,
 }: CustomerEmailVerificationFormProps) {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -71,16 +69,17 @@ export default function CustomerEmailVerificationForm({
 
     try {
       // Call API to confirm email verification
-      await confirmEmailVerification({ org: organization, token, customerId });
+      const result = await confirmEmailVerification({ org: organization, token, custId });
 
-      // Show success state
-      setIsSuccess(true);
-
-      // Optional: Redirect after 3 seconds
-      setTimeout(() => {
-        // You can redirect to a success page or login page
-        // router.push(`/${locale}/verification-success`);
-      }, 3000);
+      // Check if API call was successful
+      if (result.success) {
+        // Show success state
+        setIsSuccess(true);
+      } else {
+        // API returned error
+        const errorMessage = result.error?.message || dictionary.errors.apiError;
+        setError(errorMessage);
+      }
     } catch (err: any) {
       console.error('Email verification failed:', err);
 

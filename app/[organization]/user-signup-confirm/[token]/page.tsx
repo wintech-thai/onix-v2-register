@@ -1,42 +1,57 @@
 /**
- * Customer Email Verification Page
+ * User Signup Confirm Page
  *
- * Route: /[locale]/[organization]/customer-email-verification/[token]
- * Query params: data (base64 encoded JSON with customerId, name, email)
+ * Route: /[organization]/user-signup-confirm/[token]
+ * Query params:
+ *   - lang: Language selection (en or th)
+ *   - data: Base64 encoded JSON with username, email
  *
  * This page:
  * 1. Parses the URL to extract organization, token, and data parameter
  * 2. Decodes and validates the data parameter
- * 3. Renders CustomerEmailVerificationForm with pre-populated data
+ * 3. Renders UserSignupConfirmForm with pre-populated data
  * 4. Handles errors (invalid token, expired link, malformed data)
+ * 5. Uses searchParams for locale detection (?lang=en or ?lang=th)
  */
 
 import React from 'react';
 import { notFound } from 'next/navigation';
-import CustomerEmailVerificationForm from '@/components/forms/CustomerEmailVerificationForm';
+import UserSignupConfirmForm from '@/components/forms/UserSignupConfirmForm';
 import { decodeDataParam } from '@/lib/url-parser';
-import { customerEmailVerificationSchema } from '@/lib/validation';
-import { getDictionary } from '@/i18n';
-import type { Locale } from '@/i18n';
+import { usernameSchema, emailSchema } from '@/lib/validation';
+import { getDictionary, getLocaleFromSearchParams } from '@/i18n';
+import { z } from 'zod';
 
-interface CustomerEmailVerificationPageProps {
+// Schema for user signup data
+const userSignupDataSchema = z.object({
+  username: usernameSchema,
+  email: emailSchema,
+  orgUserId: z.string().uuid('Organization User ID must be a valid UUID').optional(),
+});
+
+interface UserSignupConfirmPageProps {
   params: Promise<{
-    locale: Locale;
     organization: string;
     token: string;
   }>;
   searchParams: Promise<{
-    data?: string;
+    [key: string]: string | string[] | undefined;
   }>;
 }
 
-export default async function CustomerEmailVerificationPage({
+export default async function UserSignupConfirmPage({
   params,
   searchParams,
-}: CustomerEmailVerificationPageProps) {
+}: UserSignupConfirmPageProps) {
   // Await params and searchParams (Next.js 16 requirement)
-  const { locale, organization, token } = await params;
-  const { data: dataParam } = await searchParams;
+  const { organization, token } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  // Get locale from searchParams
+  const locale = getLocaleFromSearchParams(resolvedSearchParams);
+  const dataParam = Array.isArray(resolvedSearchParams.data)
+    ? resolvedSearchParams.data[0]
+    : resolvedSearchParams.data;
 
   // Get dictionary for i18n
   const dictionary = await getDictionary(locale);
@@ -64,7 +79,7 @@ export default async function CustomerEmailVerificationPage({
 
   try {
     // Decode the data parameter
-    const parseResult = decodeDataParam(dataParam);
+    const parseResult = decodeDataParam(dataParam, 'user-signup-confirm');
     if (!parseResult.success) {
       console.error('Failed to decode data parameter:', parseResult.error);
       return (
@@ -89,10 +104,10 @@ export default async function CustomerEmailVerificationPage({
     const decodedData = parseResult.data;
 
     // Validate the decoded data against schema
-    const validationResult = customerEmailVerificationSchema.safeParse(decodedData);
+    const validationResult = userSignupDataSchema.safeParse(decodedData);
 
     if (!validationResult.success) {
-      console.error('Customer email verification data validation failed:', validationResult.error);
+      console.error('User signup data validation failed:', validationResult.error);
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
@@ -112,7 +127,7 @@ export default async function CustomerEmailVerificationPage({
       );
     }
 
-    const { customerId, name, email } = validationResult.data;
+    const { username, email, orgUserId } = validationResult.data;
 
     // Validate token format (should be UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -140,19 +155,19 @@ export default async function CustomerEmailVerificationPage({
     // Render the form with validated data
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <CustomerEmailVerificationForm
+        <UserSignupConfirmForm
           organization={organization}
           token={token}
-          customerId={customerId}
-          name={name}
+          username={username}
           email={email}
+          orgUserId={orgUserId || token}
           locale={locale}
           dictionary={dictionary}
         />
       </div>
     );
   } catch (error) {
-    console.error('Failed to parse customer email verification URL:', error);
+    console.error('Failed to parse user signup URL:', error);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
@@ -174,12 +189,17 @@ export default async function CustomerEmailVerificationPage({
 }
 
 // Metadata for the page
-export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
-  const { locale } = await params;
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const locale = getLocaleFromSearchParams(resolvedSearchParams);
   const dictionary = await getDictionary(locale);
 
   return {
-    title: dictionary.forms.customerVerification.title,
-    description: dictionary.forms.customerVerification.description,
+    title: dictionary.forms.userSignup.title,
+    description: dictionary.forms.userSignup.description,
   };
 }

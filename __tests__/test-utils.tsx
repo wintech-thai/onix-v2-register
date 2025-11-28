@@ -57,6 +57,7 @@ export function generateUserInviteData(overrides?: Partial<any>) {
   return {
     username: 'testuser',
     email: 'test@example.com',
+    invitedBy: 'admin.user',
     ...overrides,
   };
 }
@@ -172,6 +173,9 @@ export const mockEnglishDictionary = {
       email: 'Email',
       confirmButton: 'Confirm Invitation',
       success: 'Your account has been confirmed successfully!',
+      invitedBy: 'Invited By',
+      invitedByMissing:
+        'We could not determine who invited you. Please request a fresh invitation.',
     },
     userSignup: {
       title: 'Complete Your Registration',
@@ -280,9 +284,7 @@ export async function waitForElementToBeRemoved(
 /**
  * Wait for loading to finish
  */
-export async function waitForLoadingToFinish(
-  getByText: (text: string | RegExp) => HTMLElement
-) {
+export async function waitForLoadingToFinish(getByText: (text: string | RegExp) => HTMLElement) {
   try {
     await waitForElementToBeRemoved(() => {
       try {

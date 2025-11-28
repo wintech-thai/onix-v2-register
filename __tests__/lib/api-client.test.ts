@@ -181,7 +181,7 @@ describe('API Client', () => {
       const result = await confirmEmailVerification({
         org: 'testorg',
         token: 'test-token',
-        customerId: '12345',
+        custId: '12345',
       });
 
       expect(result.success).toBe(true);
@@ -222,7 +222,7 @@ describe('API Client', () => {
       const result = await confirmEmailVerification({
         org: 'testorg',
         token: 'test-token',
-        customerId: '12345',
+        custId: '12345',
       });
 
       expect(result.success).toBe(false);

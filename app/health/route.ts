@@ -1,8 +1,9 @@
 /**
- * Health Check API Route
+ * Public `/health` route that mirrors the API health endpoint but lives
+ * at the root path (useful for load balancers that expect `/health`).
  *
- * Returns application health status, version, and uptime information.
- * Used by Kubernetes/Docker for liveness and readiness probes.
+ * The handler reuses the shared health payload builder to keep parity
+ * between `/api/health` and `/health`.
  */
 
 import { NextResponse } from 'next/server';

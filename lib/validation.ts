@@ -16,51 +16,55 @@ import { z } from 'zod';
  */
 export const emailSchema = z
   .string()
+  .trim()
+  .toLowerCase()
   .min(1, 'Email is required')
   .email('Please enter a valid email address')
-  .max(255, 'Email must not exceed 255 characters')
-  .toLowerCase()
-  .trim();
+  .max(255, 'Email must not exceed 255 characters');
 
 /**
  * Username validation schema
  */
 export const usernameSchema = z
   .string()
+  .trim()
   .min(3, 'Username must be at least 3 characters')
   .max(20, 'Username must not exceed 20 characters')
-  .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, hyphens, and underscores')
-  .trim();
-
-/**
- * Password validation schema
- * Requirements:
- * - Minimum 8 characters
- * - At least one uppercase letter
- * - At least one lowercase letter
- * - At least one number
- * - At least one special character
- */
-export const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(100, 'Password must not exceed 100 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(
-    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
-    'Password must contain at least one special character'
+    /^[a-zA-Z0-9._-]+$/,
+    'Username can only contain letters, numbers, dots, hyphens, and underscores'
   );
 
 /**
+ * Password validation schema
+ * Requirements (matches backend API):
+ * - Length: 7-15 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one special character from: ! @ #
+ */
+export const passwordSchema = z
+  .string()
+  .min(7, 'Password must be at least 7 characters')
+  .max(15, 'Password must not exceed 15 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[!@#]/, 'Password must contain at least one special character (!, @, or #)');
+
+/**
  * Name validation schema (first name, last name)
+ * Supports international Unicode characters (Thai, Chinese, accented letters, etc.)
+ * \p{L} = Unicode letters (all languages)
+ * \p{M} = Unicode marks (combining characters like Thai vowels/tone marks)
  */
 export const nameSchema = z
   .string()
   .min(2, 'Name must be at least 2 characters')
   .max(50, 'Name must not exceed 50 characters')
-  .regex(/^[a-zA-Z\s'-]+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes')
+  .regex(
+    /^[\p{L}\p{M}\p{N}\s'-]+$/u,
+    'Name can only contain letters, numbers, spaces, hyphens, and apostrophes'
+  )
   .trim();
 
 /**
@@ -125,9 +129,7 @@ export const customerEmailVerificationSchema = z.object({
   email: emailSchema,
 });
 
-export type CustomerEmailVerificationFormData = z.infer<
-  typeof customerEmailVerificationSchema
->;
+export type CustomerEmailVerificationFormData = z.infer<typeof customerEmailVerificationSchema>;
 
 // ============================================
 // FORGOT PASSWORD FORM
@@ -160,20 +162,23 @@ export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
  */
 export function validatePasswordStrength(password: string): {
   isValid: boolean;
-  score: number; // 0-5
+  score: number; // 0-4
   feedback: string[];
 } {
   const feedback: string[] = [];
   let score = 0;
 
-  // Length check
-  if (password.length >= 8) {
+  // Length check (7-15 characters)
+  if (password.length >= 7 && password.length <= 15) {
     score++;
+  } else if (password.length < 7) {
+    feedback.push('Password must be at least 7 characters long');
   } else {
-    feedback.push('Password must be at least 8 characters long');
+    feedback.push('Password must not exceed 15 characters');
   }
 
-  if (password.length >= 12) {
+  // Bonus for good length (10-15 chars)
+  if (password.length >= 10 && password.length <= 15) {
     score++;
   }
 
@@ -191,22 +196,15 @@ export function validatePasswordStrength(password: string): {
     feedback.push('Add at least one lowercase letter');
   }
 
-  // Number check
-  if (/[0-9]/.test(password)) {
+  // Special character check (only !, @, #)
+  if (/[!@#]/.test(password)) {
     score++;
   } else {
-    feedback.push('Add at least one number');
-  }
-
-  // Special character check
-  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    score++;
-  } else {
-    feedback.push('Add at least one special character');
+    feedback.push('Add at least one special character (!, @, or #)');
   }
 
   return {
-    isValid: score >= 5,
+    isValid: score >= 4,
     score,
     feedback,
   };
@@ -219,11 +217,11 @@ export function getPasswordStrengthLabel(score: number): {
   label: string;
   color: string;
 } {
-  if (score <= 2) {
+  if (score <= 1) {
     return { label: 'Weak', color: 'red' };
-  } else if (score <= 3) {
+  } else if (score <= 2) {
     return { label: 'Fair', color: 'orange' };
-  } else if (score <= 4) {
+  } else if (score <= 3) {
     return { label: 'Good', color: 'yellow' };
   } else {
     return { label: 'Strong', color: 'green' };

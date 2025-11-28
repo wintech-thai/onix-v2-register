@@ -220,8 +220,7 @@ describe('URL Parser - parseRegistrationUrl', () => {
   });
 
   it('should parse valid user-signup-confirm URL', () => {
-    const url =
-      '/th/acme/user-signup-confirm/12345678-1234-1234-1234-123456789abc?data=encoded';
+    const url = '/th/acme/user-signup-confirm/12345678-1234-1234-1234-123456789abc?data=encoded';
 
     const result = parseRegistrationUrl(url);
 
@@ -358,15 +357,7 @@ describe('URL Parser - validateToken', () => {
 
 describe('URL Parser - isValidOrganization', () => {
   it('should accept valid organization names', () => {
-    const validOrgs = [
-      'myorg',
-      'my-org',
-      'my_org',
-      'org123',
-      'ORG',
-      'a',
-      'organization-name-123',
-    ];
+    const validOrgs = ['myorg', 'my-org', 'my_org', 'org123', 'ORG', 'a', 'organization-name-123'];
 
     validOrgs.forEach((org) => {
       expect(isValidOrganization(org)).toBe(true);
@@ -374,14 +365,7 @@ describe('URL Parser - isValidOrganization', () => {
   });
 
   it('should reject invalid organization names', () => {
-    const invalidOrgs = [
-      '',
-      'org with spaces',
-      'org@special',
-      'org#test',
-      'org/test',
-      'org\\test',
-    ];
+    const invalidOrgs = ['', 'org with spaces', 'org@special', 'org#test', 'org/test', 'org\\test'];
 
     invalidOrgs.forEach((org) => {
       expect(isValidOrganization(org)).toBe(false);
@@ -414,7 +398,7 @@ describe('URL Parser - REGISTRATION_TYPES', () => {
 
 describe('URL Parser - Integration tests', () => {
   it('should handle complete valid URL parsing flow', () => {
-    const data = { username: 'testuser', email: 'test@example.com' };
+    const data = { username: 'testuser', email: 'test@example.com', invitedBy: 'admin.user' };
     const jsonString = JSON.stringify(data);
     const base64 = Buffer.from(jsonString).toString('base64');
     const encoded = encodeURIComponent(base64);

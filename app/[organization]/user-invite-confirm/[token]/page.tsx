@@ -5,29 +5,36 @@
  * Users arrive here via email link with a token and pre-populated data.
  * They simply review the information and confirm their invitation.
  *
- * URL Pattern: /{locale}/{organization}/user-invite-confirm/{token}?data={base64_encoded_json}
+ * URL Pattern: /{organization}/user-invite-confirm/{token}?lang={locale}&data={base64_encoded_json}
  */
 
 import { notFound } from 'next/navigation';
-import { getDictionary, type Locale } from '@/i18n';
+import { getDictionary, getLocaleFromSearchParams } from '@/i18n';
 import { parseRegistrationUrl, type UserInviteData } from '@/lib/url-parser';
-import { UserInviteConfirmForm } from '@/components/forms/UserInviteConfirmForm';
+import UserInviteConfirmForm from '@/components/forms/UserInviteConfirmForm';
 
 type Props = {
   params: Promise<{
-    locale: Locale;
     organization: string;
     token: string;
   }>;
   searchParams: Promise<{
-    data?: string;
+    [key: string]: string | string[] | undefined;
   }>;
 };
 
 export default async function UserInviteConfirmPage({ params, searchParams }: Props) {
-  const { locale, organization, token } = await params;
-  const { data: dataParam } = await searchParams;
+  const { organization, token } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  // Get locale from searchParams
+  const locale = getLocaleFromSearchParams(resolvedSearchParams);
   const dict = await getDictionary(locale);
+
+  // Get data param
+  const dataParam = Array.isArray(resolvedSearchParams.data)
+    ? resolvedSearchParams.data[0]
+    : resolvedSearchParams.data;
 
   // Validate that data parameter exists
   if (!dataParam) {
@@ -105,7 +112,10 @@ export default async function UserInviteConfirmPage({ params, searchParams }: Pr
           token={token}
           username={userData.username}
           email={userData.email}
-          dict={dict}
+          orgUserId={(userData as any).orgUserId || token}
+          invitedBy={userData.invitedBy}
+          locale={locale}
+          dictionary={dict}
         />
       </div>
     </div>

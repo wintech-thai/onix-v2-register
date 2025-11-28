@@ -23,11 +23,10 @@
     },
     "password": {
       "required": "Password is required",
-      "minLength": "Password must be at least 8 characters",
+      "minLength": "Password must be between 7-15 characters",
       "uppercase": "Password must contain at least one uppercase letter",
       "lowercase": "Password must contain at least one lowercase letter",
-      "number": "Password must contain at least one number",
-      "special": "Password must contain at least one special character"
+      "special": "Password must contain at least one special character (!, @, or #)"
     },
     "confirmPassword": {
       "required": "Please confirm your password",
@@ -47,11 +46,17 @@
   "forms": {
     "userInvite": {
       "title": "Confirm User Invitation",
-      "description": "Please confirm your account details",
+      "description": "Please complete your profile to accept the invitation",
       "username": "Username",
       "email": "Email",
-      "confirmButton": "Confirm Invitation",
-      "success": "Your account has been confirmed successfully!"
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "submitButton": "Confirm Invitation",
+      "success": "Your invitation has been confirmed successfully!",
+      "invitedBy": "Invited By",
+      "invitedByMissing": "We could not determine who invited you. Please request a fresh invitation."
     },
     "userSignup": {
       "title": "Complete Your Registration",
@@ -72,7 +77,8 @@
       "name": "Name",
       "email": "Email",
       "confirmButton": "Verify Email",
-      "success": "Your email has been verified successfully!"
+      "success": "Email Verified Successfully!",
+      "redirecting": "Redirecting to complete your signup..."
     },
     "forgotPassword": {
       "title": "Reset Your Password",

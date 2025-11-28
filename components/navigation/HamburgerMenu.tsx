@@ -5,13 +5,14 @@
  *
  * Mobile-responsive hamburger menu for language selection.
  * Slide-in panel from the right with language options.
+ * Uses searchParams (?lang=en or ?lang=th) instead of path segments.
  * Matches template design exactly.
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, usePathname, useRouter } from 'next/navigation';
 import { Menu, X, Globe } from 'lucide-react';
 import { locales, localeLabels, type Locale } from '@/i18n';
+import { useLocale } from '@/hooks/useLocale';
 
 interface HamburgerMenuProps {
   className?: string;
@@ -19,10 +20,7 @@ interface HamburgerMenuProps {
 
 export function HamburgerMenu({ className = '' }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useParams();
-  const currentLocale = (params?.locale as Locale) || 'en';
+  const { locale: currentLocale, switchLocale } = useLocale();
 
   // Close menu
   const closeMenu = () => setIsOpen(false);
@@ -40,13 +38,9 @@ export function HamburgerMenu({ className = '' }: HamburgerMenuProps) {
   }, [isOpen]);
 
   // Handle language switch
-  const switchLocale = (newLocale: Locale) => {
-    const pathWithoutLocale = pathname.replace(`/${currentLocale}`, '');
-    router.push(`/${newLocale}${pathWithoutLocale || ''}`);
+  const handleSwitchLocale = (newLocale: Locale) => {
+    switchLocale(newLocale);
     closeMenu();
-
-    // Set cookie for persistence
-    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
   };
 
   return (
@@ -105,7 +99,7 @@ export function HamburgerMenu({ className = '' }: HamburgerMenuProps) {
             <div className="space-y-2">
               {/* English Option */}
               <button
-                onClick={() => switchLocale('en')}
+                onClick={() => handleSwitchLocale('en')}
                 className={`block w-full px-4 py-3 rounded-lg text-left transition-colors ${
                   currentLocale === 'en'
                     ? 'bg-blue-50 text-blue-700 font-medium border border-blue-200'
@@ -126,7 +120,7 @@ export function HamburgerMenu({ className = '' }: HamburgerMenuProps) {
 
               {/* Thai Option */}
               <button
-                onClick={() => switchLocale('th')}
+                onClick={() => handleSwitchLocale('th')}
                 className={`block w-full px-4 py-3 rounded-lg text-left transition-colors ${
                   currentLocale === 'th'
                     ? 'bg-blue-50 text-blue-700 font-medium border border-blue-200'
@@ -174,9 +168,7 @@ export function HamburgerMenu({ className = '' }: HamburgerMenuProps) {
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <span>
-                  {currentLocale === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}
-                </span>
+                <span>{currentLocale === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</span>
               </div>
             </a>
           </div>

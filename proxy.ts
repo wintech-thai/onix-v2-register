@@ -2,15 +2,16 @@
  * Proxy for ONIX v2 Registration Microservice
  *
  * Features:
- * 1. Internationalization routing (locale detection and redirection)
- * 2. Audit logging for all requests
+ * 1. Audit logging for all requests
+ * 2. Security headers
  *
  * Note: Next.js 16 proxy runs in Edge Runtime by default
  * Renamed from middleware.ts to proxy.ts per Next.js 16 convention
+ *
+ * i18n is now handled via searchParams (?lang=en or ?lang=th) instead of path segments
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { locales, defaultLocale, isValidLocale, type Locale } from './i18n';
 
 // Log version info on first load
 let versionLogged = false;
@@ -58,56 +59,11 @@ interface UserInfo {
 }
 
 /**
- * Get preferred locale from Accept-Language header
- */
-function getLocaleFromHeader(request: NextRequest): Locale {
-  const acceptLanguage = request.headers.get('accept-language');
-
-  if (!acceptLanguage) {
-    return defaultLocale;
-  }
-
-  // Parse accept-language header
-  // Format: "en-US,en;q=0.9,th;q=0.8"
-  const languages = acceptLanguage
-    .split(',')
-    .map((lang) => {
-      const [locale, q = 'q=1'] = lang.trim().split(';');
-      const quality = parseFloat(q.split('=')[1] || '1');
-      return { locale: locale.toLowerCase(), quality };
-    })
-    .sort((a, b) => b.quality - a.quality);
-
-  // Find first matching locale
-  for (const { locale } of languages) {
-    // Check exact match (e.g., "en", "th")
-    if (locales.includes(locale as any)) {
-      return locale as Locale;
-    }
-
-    // Check language prefix (e.g., "en-US" -> "en")
-    const prefix = locale.split('-')[0];
-    if (locales.includes(prefix as any)) {
-      return prefix as Locale;
-    }
-  }
-
-  return defaultLocale as Locale;
-}
-
-/**
- * Check if pathname has a locale prefix
- */
-function pathnameHasLocale(pathname: string): boolean {
-  return locales.some((locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`);
-}
-
-/**
  * Main proxy function
  */
 export async function proxy(request: NextRequest) {
   const startTime = Date.now();
-  const { pathname, search } = request.nextUrl;
+  const { pathname, search, searchParams } = request.nextUrl;
 
   // Skip proxy for:
   // - Health endpoints
@@ -125,45 +81,15 @@ export async function proxy(request: NextRequest) {
   }
 
   // ============================================
-  // 1. INTERNATIONALIZATION ROUTING
+  // 1. SECURITY HEADERS
   // ============================================
 
-  // Check if pathname already has a locale
-  if (!pathnameHasLocale(pathname)) {
-    // Get locale from cookie or Accept-Language header
-    const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
-    let locale: Locale = defaultLocale;
-
-    if (cookieLocale && isValidLocale(cookieLocale)) {
-      locale = cookieLocale;
-    } else {
-      locale = getLocaleFromHeader(request);
-    }
-
-    // Redirect to locale-prefixed path
-    const newUrl = new URL(`/${locale}${pathname}${search}`, request.url);
-    const response = NextResponse.redirect(newUrl);
-
-    // Set locale cookie
-    response.cookies.set('NEXT_LOCALE', locale, {
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      path: '/',
-    });
-
-    return response;
-  }
-
-  // Continue with the request
   const response = NextResponse.next();
 
-  // Extract locale from pathname for cookie setting
-  const pathLocale = pathname.split('/')[1];
-  if (isValidLocale(pathLocale)) {
-    response.cookies.set('NEXT_LOCALE', pathLocale, {
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      path: '/',
-    });
-  }
+  // Add security headers
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // ============================================
   // 2. AUDIT LOGGING
@@ -184,6 +110,9 @@ export async function proxy(request: NextRequest) {
 
   const cfClientIp = request.headers.get('cf-connecting-ip') || '';
   const requestSize = parseInt(request.headers.get('content-length') || '0', 10);
+
+  // Get locale from searchParams for logging
+  const locale = searchParams.get('lang') || 'en';
 
   // Calculate response time
   const endTime = Date.now();
@@ -206,7 +135,7 @@ export async function proxy(request: NextRequest) {
     CustomStatus: response.headers.get('CUST_STATUS') || '',
     CustomDesc: response.status !== 200 ? response.statusText : '',
     Environment: process.env.RUNTIME_ENV || 'development',
-    Locale: pathLocale || defaultLocale,
+    Locale: locale,
     userInfo: {},
   };
 

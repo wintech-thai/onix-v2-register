@@ -13,6 +13,7 @@
  */
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { HamburgerMenu } from './HamburgerMenu';
 
 interface TopNavigationProps {
@@ -75,7 +76,9 @@ export function TopNavigation({ className = '' }: TopNavigationProps) {
           </Link>
 
           {/* Right: Hamburger Menu */}
-          <HamburgerMenu />
+          <Suspense fallback={<div className="w-10 h-10" />}>
+            <HamburgerMenu />
+          </Suspense>
         </div>
       </nav>
     </header>

@@ -29,7 +29,7 @@ describe('Validation - Email Schema', () => {
       'user.name@example.com',
       'user+tag@example.co.uk',
       'test_user@sub.example.com',
-      'a@b.c',
+      'a@b.co',
     ];
 
     validEmails.forEach((email) => {
@@ -71,14 +71,7 @@ describe('Validation - Email Schema', () => {
 
 describe('Validation - Username Schema', () => {
   it('should accept valid usernames', () => {
-    const validUsernames = [
-      'user',
-      'user123',
-      'user_name',
-      'user-name',
-      'User123',
-      'a_b-c',
-    ];
+    const validUsernames = ['user', 'user123', 'user_name', 'user-name', 'User123', 'a_b-c'];
 
     validUsernames.forEach((username) => {
       const result = usernameSchema.safeParse(username);
@@ -121,11 +114,12 @@ describe('Validation - Username Schema', () => {
 describe('Validation - Password Schema', () => {
   it('should accept valid passwords', () => {
     const validPasswords = [
-      'Password123!',
-      'MyP@ssw0rd',
-      'Str0ng!Pass',
-      'C0mpl3x#Pass',
-      'Aa1!aaaa',
+      'Pass@word', // 9 chars, uppercase, lowercase, special
+      'MyP@ssw', // 7 chars (min), valid
+      'Str0ng!Pass', // 11 chars, but has number (not required)
+      'Complex#Pw', // 10 chars, valid
+      'Aa!aaaa', // 7 chars, valid
+      'LongPass@word1', // 14 chars, valid
     ];
 
     validPasswords.forEach((password) => {
@@ -150,47 +144,57 @@ describe('Validation - Password Schema', () => {
     }
   });
 
-  it('should reject passwords without numbers', () => {
+  it('should accept passwords without numbers', () => {
+    // Numbers are not required by backend policy
     const result = passwordSchema.safeParse('Password!');
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0].message).toContain('number');
-    }
+    expect(result.success).toBe(true);
   });
 
   it('should reject passwords without special characters', () => {
-    const result = passwordSchema.safeParse('Password123');
+    const result = passwordSchema.safeParse('Password');
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0].message).toContain('special');
     }
   });
 
-  it('should reject passwords shorter than 8 characters', () => {
-    const result = passwordSchema.safeParse('Pass1!');
+  it('should reject passwords with invalid special characters', () => {
+    // Only !, @, # are allowed
+    const result = passwordSchema.safeParse('Password$123');
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject passwords shorter than 7 characters', () => {
+    const result = passwordSchema.safeParse('Pass!');
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toContain('8');
+      expect(result.error.issues[0].message).toContain('7');
     }
   });
 
-  it('should reject passwords longer than 100 characters', () => {
-    const longPassword = 'A1!' + 'a'.repeat(98);
+  it('should reject passwords longer than 15 characters', () => {
+    const longPassword = 'A!aaaaaaaaaaaaaaaa'; // 18 chars
     const result = passwordSchema.safeParse(longPassword);
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toContain('15');
+    }
+  });
+
+  it('should accept passwords at minimum length (7 chars)', () => {
+    const result = passwordSchema.safeParse('Pass@rd');
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept passwords at maximum length (15 chars)', () => {
+    const result = passwordSchema.safeParse('Pass@word123456');
+    expect(result.success).toBe(true);
   });
 });
 
 describe('Validation - Name Schema', () => {
   it('should accept valid names', () => {
-    const validNames = [
-      'John',
-      'Mary Jane',
-      "O'Brien",
-      'Jean-Pierre',
-      'Ann',
-      'Mary Ann',
-    ];
+    const validNames = ['John', 'Mary Jane', "O'Brien", 'Jean-Pierre', 'Ann', 'Mary Ann'];
 
     validNames.forEach((name) => {
       const result = nameSchema.safeParse(name);
@@ -198,10 +202,48 @@ describe('Validation - Name Schema', () => {
     });
   });
 
+  it('should accept names with numbers', () => {
+    const validNames = ['John123', 'adison x3', 'Mary 2nd', 'King Louis XIV', 'Player1'];
+
+    validNames.forEach((name) => {
+      const result = nameSchema.safeParse(name);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  it('should accept Thai names', () => {
+    expect(nameSchema.safeParse('สมชาย').success).toBe(true);
+    expect(nameSchema.safeParse('สมชาย วงษ์ไชย').success).toBe(true);
+    expect(nameSchema.safeParse('นภา แซ่ตัน').success).toBe(true);
+    expect(nameSchema.safeParse('กมลชนก ศรีสวัสดิ์').success).toBe(true);
+  });
+
+  it('should accept Chinese names', () => {
+    expect(nameSchema.safeParse('王小明').success).toBe(true);
+    expect(nameSchema.safeParse('李娜').success).toBe(true);
+  });
+
+  it('should accept Japanese names', () => {
+    expect(nameSchema.safeParse('田中太郎').success).toBe(true);
+    expect(nameSchema.safeParse('さくら').success).toBe(true);
+  });
+
+  it('should accept European accented names', () => {
+    expect(nameSchema.safeParse('José García').success).toBe(true);
+    expect(nameSchema.safeParse('François Müller').success).toBe(true);
+    expect(nameSchema.safeParse('Søren Kierkegaard').success).toBe(true);
+    expect(nameSchema.safeParse('Nicolás').success).toBe(true);
+    expect(nameSchema.safeParse('Björk').success).toBe(true);
+  });
+
+  it('should accept mixed international names with hyphens and apostrophes', () => {
+    expect(nameSchema.safeParse("Jean-François D'Auriol").success).toBe(true);
+    expect(nameSchema.safeParse('María José').success).toBe(true);
+  });
+
   it('should reject invalid names', () => {
     const invalidNames = [
       'A', // Too short
-      'John123', // Numbers
       'John@Doe', // Special char
       'John_Doe', // Underscore
       '',
@@ -371,25 +413,25 @@ describe('Validation - Forgot Password Schema', () => {
 
 describe('Validation - validatePasswordStrength', () => {
   it('should return weak for short password', () => {
-    const result = validatePasswordStrength('Pass1!');
-    expect(result.score).toBeLessThan(5);
+    const result = validatePasswordStrength('Pass');
+    expect(result.score).toBeLessThanOrEqual(2);
     expect(result.isValid).toBe(false);
     expect(result.feedback.length).toBeGreaterThan(0);
   });
 
   it('should return strong for complex password', () => {
-    const result = validatePasswordStrength('VeryStr0ng!Password');
-    expect(result.score).toBeGreaterThanOrEqual(5);
+    const result = validatePasswordStrength('MyP@ssword');
+    expect(result.score).toBeGreaterThanOrEqual(3);
     expect(result.isValid).toBe(true);
     expect(result.feedback.length).toBe(0);
   });
 
   it('should provide feedback for missing requirements', () => {
     const result = validatePasswordStrength('password');
+    expect(result.score).toBeLessThan(4);
     expect(result.isValid).toBe(false);
     expect(result.feedback).toContain('Add at least one uppercase letter');
-    expect(result.feedback).toContain('Add at least one number');
-    expect(result.feedback).toContain('Add at least one special character');
+    expect(result.feedback).toContain('Add at least one special character (!, @, or #)');
   });
 
   it('should score based on length', () => {
@@ -406,10 +448,9 @@ describe('Validation - validatePasswordStrength', () => {
   });
 
   it('should give maximum score for excellent password', () => {
-    const result = validatePasswordStrength('Exc3ll3nt!P@ssw0rd123');
-    expect(result.score).toBe(6);
+    const result = validatePasswordStrength('MyC0mpl3x!Pass'); // 14 chars, all requirements
+    expect(result.score).toBeGreaterThanOrEqual(4);
     expect(result.isValid).toBe(true);
-    expect(result.feedback.length).toBe(0);
   });
 });
 
@@ -417,27 +458,26 @@ describe('Validation - getPasswordStrengthLabel', () => {
   it('should return Weak for low scores', () => {
     expect(getPasswordStrengthLabel(0).label).toBe('Weak');
     expect(getPasswordStrengthLabel(1).label).toBe('Weak');
-    expect(getPasswordStrengthLabel(2).label).toBe('Weak');
   });
 
   it('should return Fair for medium-low scores', () => {
-    expect(getPasswordStrengthLabel(3).label).toBe('Fair');
+    expect(getPasswordStrengthLabel(2).label).toBe('Fair');
   });
 
   it('should return Good for medium-high scores', () => {
-    expect(getPasswordStrengthLabel(4).label).toBe('Good');
+    expect(getPasswordStrengthLabel(3).label).toBe('Good');
   });
 
   it('should return Strong for high scores', () => {
-    expect(getPasswordStrengthLabel(5).label).toBe('Strong');
-    expect(getPasswordStrengthLabel(6).label).toBe('Strong');
+    expect(getPasswordStrengthLabel(4).label).toBe('Strong');
   });
 
   it('should return appropriate colors', () => {
     expect(getPasswordStrengthLabel(0).color).toBe('red');
-    expect(getPasswordStrengthLabel(3).color).toBe('orange');
-    expect(getPasswordStrengthLabel(4).color).toBe('yellow');
-    expect(getPasswordStrengthLabel(5).color).toBe('green');
+    expect(getPasswordStrengthLabel(1).color).toBe('red');
+    expect(getPasswordStrengthLabel(2).color).toBe('orange');
+    expect(getPasswordStrengthLabel(3).color).toBe('yellow');
+    expect(getPasswordStrengthLabel(4).color).toBe('green');
   });
 });
 

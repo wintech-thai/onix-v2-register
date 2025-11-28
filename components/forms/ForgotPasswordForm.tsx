@@ -43,6 +43,7 @@ export interface ForgotPasswordFormProps {
   token: string;
   username: string;
   email: string;
+  orgUserId: string;
   locale: string;
   dictionary: {
     forms: {
@@ -63,7 +64,6 @@ export interface ForgotPasswordFormProps {
         minLength: string;
         uppercase: string;
         lowercase: string;
-        number: string;
         special: string;
       };
       confirmPassword: {
@@ -88,6 +88,7 @@ export default function ForgotPasswordForm({
   token,
   username,
   email,
+  orgUserId,
   locale,
   dictionary,
 }: ForgotPasswordFormProps) {
@@ -122,20 +123,29 @@ export default function ForgotPasswordForm({
 
     try {
       // Call API to reset password
-      await confirmPasswordReset({
+      const result = await confirmPasswordReset({
         org: organization,
         token,
         username,
+        email,
         newPassword: data.newPassword,
+        orgUserId,
       });
 
-      // Show success state
-      setIsSuccess(true);
+      // Check if API call was successful
+      if (result.success) {
+        // Show success state
+        setIsSuccess(true);
 
-      // Optional: Redirect to login after 5 seconds
-      setTimeout(() => {
-        // router.push(`/${locale}/login`);
-      }, 5000);
+        // Optional: Redirect to login after 5 seconds
+        setTimeout(() => {
+          // router.push(`/${locale}/login`);
+        }, 5000);
+      } else {
+        // API returned error
+        const errorMessage = result.error?.message || dictionary.errors.apiError;
+        setApiError(errorMessage);
+      }
     } catch (err: any) {
       console.error('Password reset failed:', err);
 
@@ -189,11 +199,6 @@ export default function ForgotPasswordForm({
               {dictionary.forms.forgotPassword.success}
             </h2>
             <p className="text-gray-600">You can now log in with your new password.</p>
-          </div>
-
-          {/* Next Steps */}
-          <div className="pt-4">
-            <p className="text-sm text-gray-500">Redirecting to login page in a few seconds...</p>
           </div>
         </div>
       </div>
@@ -260,10 +265,7 @@ export default function ForgotPasswordForm({
               <span className="mt-0.5">•</span>
               <span>{dictionary.validation.password.lowercase}</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-0.5">•</span>
-              <span>{dictionary.validation.password.number}</span>
-            </li>
+
             <li className="flex items-start gap-2">
               <span className="mt-0.5">•</span>
               <span>{dictionary.validation.password.special}</span>

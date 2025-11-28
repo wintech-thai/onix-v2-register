@@ -50,9 +50,8 @@ export default function PasswordInput({
   const [isFocused, setIsFocused] = useState(false);
 
   // Calculate password strength
-  const strength = showStrengthIndicator && value.length > 0
-    ? validatePasswordStrength(value)
-    : null;
+  const strength =
+    showStrengthIndicator && value.length > 0 ? validatePasswordStrength(value) : null;
 
   const strengthInfo = strength ? getPasswordStrengthLabel(strength.score) : null;
 
@@ -77,19 +76,22 @@ export default function PasswordInput({
 
   const inputClasses = `
     w-full px-4 py-3 pr-12
-    text-base
+    text-base text-gray-900
     border-2 rounded-lg
     transition-all duration-200
-    ${error
-      ? 'border-red-500 focus:border-red-600 focus:ring-2 focus:ring-red-200'
-      : isFocused
-        ? 'border-blue-500 ring-2 ring-blue-200'
-        : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
+    ${
+      error
+        ? 'border-red-500 focus:border-red-600 focus:ring-2 focus:ring-red-200'
+        : isFocused
+          ? 'border-blue-500 ring-2 ring-blue-200'
+          : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
     }
     ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-60' : 'bg-white'}
     focus:outline-none
     placeholder:text-gray-400
-  `.trim().replace(/\s+/g, ' ');
+  `
+    .trim()
+    .replace(/\s+/g, ' ');
 
   const strengthColors: Record<string, string> = {
     red: 'bg-red-500',
@@ -108,10 +110,7 @@ export default function PasswordInput({
   return (
     <div className={`space-y-1 ${className}`}>
       {/* Label */}
-      <label
-        htmlFor={id}
-        className="block text-sm font-medium text-gray-700"
-      >
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
         {label}
         {required && (
           <span className="text-red-500 ml-1" aria-label="required">
@@ -167,12 +166,7 @@ export default function PasswordInput({
 
       {/* Password Strength Indicator */}
       {showStrengthIndicator && value.length > 0 && strength && strengthInfo && (
-        <div
-          id={`${id}-strength`}
-          className="space-y-2 pt-2"
-          role="status"
-          aria-live="polite"
-        >
+        <div id={`${id}-strength`} className="space-y-2 pt-2" role="status" aria-live="polite">
           {/* Strength Bar */}
           <div className="flex gap-1">
             {[...Array(5)].map((_, index) => (
@@ -180,10 +174,7 @@ export default function PasswordInput({
                 key={index}
                 className={`
                   h-1 flex-1 rounded-full transition-all duration-300
-                  ${index < strength.score
-                    ? strengthColors[strengthInfo.color]
-                    : 'bg-gray-200'
-                  }
+                  ${index < strength.score ? strengthColors[strengthInfo.color] : 'bg-gray-200'}
                 `}
               />
             ))}
@@ -210,11 +201,7 @@ export default function PasswordInput({
 
       {/* Error Message */}
       {error && (
-        <p
-          id={`${id}-error`}
-          className="text-sm text-red-600 flex items-start gap-1"
-          role="alert"
-        >
+        <p id={`${id}-error`} className="text-sm text-red-600 flex items-start gap-1" role="alert">
           <span className="mt-0.5">⚠</span>
           <span>{error}</span>
         </p>

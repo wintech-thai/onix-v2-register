@@ -38,12 +38,21 @@ export const REGISTRATION_TYPES: RegistrationType[] = [
 export const UserInviteDataSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   email: z.string().email('Invalid email address'),
+  orgUserId: z.string().uuid('Organization User ID must be a valid UUID').optional(),
+  invitedBy: z
+    .string()
+    .trim()
+    .min(1, 'Invited By is required')
+    .max(100, 'Invited By must not exceed 100 characters'),
 });
 
 // User Signup Confirm Data Schema
 export const UserSignupDataSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  username: z.string().min(1, 'Username is required').optional(),
   email: z.string().email('Invalid email address'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  orgUserId: z.string().uuid('Organization User ID must be a valid UUID').optional(),
 });
 
 // Customer Email Verification Data Schema
@@ -95,9 +104,7 @@ export interface ParseError {
   details?: unknown;
 }
 
-export type ParseResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: ParseError };
+export type ParseResult<T> = { success: true; data: T } | { success: false; error: ParseError };
 
 // ============================================
 // VALIDATION FUNCTIONS
@@ -108,8 +115,7 @@ export type ParseResult<T> =
  * Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
  */
 export function isValidUUID(token: string): boolean {
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(token);
 }
 
@@ -135,9 +141,15 @@ export function isValidRegistrationType(type: string): type is RegistrationType 
 
 /**
  * Decodes base64 encoded data parameter
- * Process: URL decode → Base64 decode → JSON parse
+ * Process: URL decode → Base64 decode → JSON parse → Key transformation
+ *
+ * @param encodedData - Base64 encoded data string
+ * @param registrationType - Registration type for context-aware key mapping
  */
-export function decodeDataParam(encodedData: string): ParseResult<unknown> {
+export function decodeDataParam(
+  encodedData: string,
+  registrationType?: RegistrationType
+): ParseResult<unknown> {
   try {
     // Step 1: URL decode
     const urlDecoded = decodeURIComponent(encodedData);
@@ -155,7 +167,13 @@ export function decodeDataParam(encodedData: string): ParseResult<unknown> {
     // Step 3: JSON parse
     const jsonData = JSON.parse(base64Decoded);
 
-    return { success: true, data: jsonData };
+    // Step 4: Transform capitalized keys to lowercase (for backward compatibility)
+    // External systems may send PascalCase keys (Email, Name, Id, Code)
+    // We normalize to camelCase (email, name, customerId/orgUserId, code)
+    // Context-aware mapping: Id → customerId (customer) or orgUserId (user)
+    const transformedData = transformDataKeys(jsonData, registrationType);
+
+    return { success: true, data: transformedData };
   } catch (error) {
     return {
       success: false,
@@ -166,6 +184,94 @@ export function decodeDataParam(encodedData: string): ParseResult<unknown> {
       },
     };
   }
+}
+
+/**
+ * Transforms data keys from external system format to internal format
+ * Handles both PascalCase and camelCase keys for backward compatibility
+ *
+ * @param data - Raw decoded data object
+ * @param registrationType - Registration type to determine context for ambiguous keys
+ * @returns Transformed data with normalized keys
+ */
+function transformDataKeys(data: any, registrationType?: RegistrationType): unknown {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+
+  // Create a new object with transformed keys
+  const transformed: any = {};
+
+  // Key mappings: external format → internal format
+  const keyMappings: Record<string, string> = {
+    // Common keys
+    Name: 'name',
+    name: 'name',
+    Email: 'email',
+    email: 'email',
+    Code: 'code',
+    code: 'code',
+    // User keys
+    UserName: 'username',
+    Username: 'username',
+    username: 'username',
+    FirstName: 'firstName',
+    firstName: 'firstName',
+    LastName: 'lastName',
+    Lastname: 'lastName', // Handle external API's lowercase 'n' variant
+    lastName: 'lastName',
+    Password: 'password',
+    password: 'password',
+    OrgUserId: 'orgUserId',
+    orgUserId: 'orgUserId',
+    InvitedBy: 'invitedBy',
+    invitedBy: 'invitedBy',
+  };
+
+  // Context-aware mapping for 'Id' field
+  // For customer verification: Id → customerId
+  // For user signup/invite: Id → orgUserId
+  if ('Id' in data || 'id' in data) {
+    const idValue = data.Id || data.id;
+    if (registrationType === 'customer-email-verification') {
+      transformed.customerId = idValue;
+    } else if (
+      registrationType === 'user-signup-confirm' ||
+      registrationType === 'user-invite-confirm'
+    ) {
+      transformed.orgUserId = idValue;
+    } else {
+      // Default fallback: treat as customerId
+      transformed.customerId = idValue;
+    }
+  }
+
+  // Handle explicit customerId (don't override if already set from Id)
+  if ('customerId' in data && !transformed.customerId) {
+    transformed.customerId = data.customerId;
+  }
+
+  // Transform known keys (convert null to undefined for optional fields)
+  for (const [externalKey, internalKey] of Object.entries(keyMappings)) {
+    if (externalKey in data) {
+      const value = data[externalKey];
+      // Convert null to undefined so Zod optional() works correctly
+      transformed[internalKey] = value === null ? undefined : value;
+    }
+  }
+
+  // Copy any unknown keys as-is (lowercase first letter if PascalCase)
+  for (const key in data) {
+    if (!(key in keyMappings) && key !== 'Id' && key !== 'id' && key !== 'customerId') {
+      // Convert PascalCase to camelCase for unknown keys
+      const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+      const value = data[key];
+      // Convert null to undefined for consistency
+      transformed[camelKey] = value === null ? undefined : value;
+    }
+  }
+
+  return transformed;
 }
 
 /**
@@ -316,8 +422,8 @@ export function parseRegistrationUrl(url: string): ParseResult<ParsedRegistratio
       };
     }
 
-    // Decode data parameter
-    const decodeResult = decodeDataParam(dataParam);
+    // Decode data parameter with registration type context for proper Id mapping
+    const decodeResult = decodeDataParam(dataParam, registrationType);
     if (!decodeResult.success) {
       return decodeResult as ParseResult<ParsedRegistrationUrl>;
     }

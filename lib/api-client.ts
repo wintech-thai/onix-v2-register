@@ -29,7 +29,7 @@ export interface ApiResponse<T = unknown> {
 // ============================================
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
+  baseURL: '/api', // Use Next.js API routes as proxy (avoids CORS)
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -88,7 +88,14 @@ apiClient.interceptors.response.use(
       message: error.message,
       url: error.config?.url,
     };
-    console.error('[API Error]', JSON.stringify(logData));
+
+    // Use warn for expected client errors (4xx), error for server errors (5xx) or network errors
+    const status = error.response?.status;
+    if (status && status >= 400 && status < 500) {
+      console.warn('[API Client Error]', JSON.stringify(logData));
+    } else {
+      console.error('[API Error]', JSON.stringify(logData));
+    }
 
     return Promise.reject(error);
   }
@@ -118,6 +125,17 @@ export function handleApiError(error: unknown): ApiError {
     const status = axiosError.response.status;
     const data = axiosError.response.data as any;
 
+    // Check if error is in nested structure (success: false, error: {...})
+    if (data?.success === false && data?.error) {
+      return {
+        code: data.error.code || `HTTP_${status}`,
+        message: data.error.message || getDefaultErrorMessage(status),
+        status,
+        details: data.error.details || data,
+      };
+    }
+
+    // Otherwise use flat structure
     return {
       code: data?.code || `HTTP_${status}`,
       message: data?.message || getDefaultErrorMessage(status),
@@ -177,12 +195,42 @@ export async function confirmUserInvite(params: {
   org: string;
   token: string;
   username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  orgUserId: string;
+  invitedBy?: string;
 }): Promise<ApiResponse> {
   try {
-    const { org, token, username } = params;
-    const response = await apiClient.post(
-      `/org/${org}/action/ConfirmExistingUserInvitation/${token}/${username}`
-    );
+    const { org, token, username, email, password, firstName, lastName, orgUserId, invitedBy } =
+      params;
+    const response = await apiClient.post('/verify/user-invite', {
+      org,
+      token,
+      regType: 'user-invite-confirm',
+      email,
+      userName: username,
+      password,
+      name: firstName,
+      lastName,
+      orgUserId,
+      invitedBy,
+    });
+
+    // Check if the API response indicates success
+    if (response.data?.success === false) {
+      // API returned success: false, treat as error
+      return {
+        success: false,
+        error: response.data.error || {
+          code: 'API_ERROR',
+          message: 'API request failed',
+          details: response.data,
+        },
+      };
+    }
+
     return { success: true, data: response.data };
   } catch (error) {
     return { success: false, error: handleApiError(error) };
@@ -196,20 +244,39 @@ export async function confirmUserSignup(params: {
   org: string;
   token: string;
   username: string;
+  email: string;
   password: string;
   firstName: string;
   lastName: string;
+  orgUserId: string;
 }): Promise<ApiResponse> {
   try {
-    const { org, token, username, password, firstName, lastName } = params;
-    const response = await apiClient.post(
-      `/org/${org}/action/ConfirmNewUserInvitation/${token}/${username}`,
-      {
-        password,
-        firstName,
-        lastName,
-      }
-    );
+    const { org, token, username, email, password, firstName, lastName, orgUserId } = params;
+    const response = await apiClient.post('/verify/user-invite', {
+      org,
+      token,
+      regType: 'user-signup-confirm',
+      email,
+      userName: username,
+      password,
+      name: firstName,
+      lastName,
+      orgUserId,
+    });
+
+    // Check if the API response indicates success
+    if (response.data?.success === false) {
+      // API returned success: false, treat as error
+      return {
+        success: false,
+        error: response.data.error || {
+          code: 'API_ERROR',
+          message: 'API request failed',
+          details: response.data,
+        },
+      };
+    }
+
     return { success: true, data: response.data };
   } catch (error) {
     return { success: false, error: handleApiError(error) };
@@ -218,18 +285,46 @@ export async function confirmUserSignup(params: {
 
 /**
  * Confirms customer email verification
+ * Calls Next.js API route which proxies to external API
+ *
+ * API Endpoint: POST /api/Registration/org/{orgId}/action/ConfirmCustomerEmailVerification/{token}/{custId}
+ *
+ * Returns response data which may include:
+ * - username: string (for redirect to user-signup-confirm)
+ * - email: string
+ * - orgUserId: string
+ * - other user data
  */
 export async function confirmEmailVerification(params: {
   org: string;
   token: string;
-  customerId: string;
+  custId: string;
 }): Promise<ApiResponse> {
   try {
-    const { org, token, customerId } = params;
-    const response = await apiClient.post(
-      `/org/${org}/action/ConfirmCustomerEmailVerification/${token}/${customerId}`
-    );
-    return { success: true, data: response.data };
+    const response = await apiClient.post('/verify/customer', {
+      org: params.org,
+      token: params.token,
+      custId: params.custId,
+    });
+
+    // Check if the API response indicates success
+    if (response.data?.success === false) {
+      // API returned success: false, treat as error
+      return {
+        success: false,
+        error: response.data.error || {
+          code: 'API_ERROR',
+          message: 'API request failed',
+          details: response.data,
+        },
+      };
+    }
+
+    // Return the response data which may contain username for redirect
+    return {
+      success: true,
+      data: response.data?.data || response.data, // Handle both {data: {...}} and direct response
+    };
   } catch (error) {
     return { success: false, error: handleApiError(error) };
   }
@@ -242,16 +337,34 @@ export async function confirmPasswordReset(params: {
   org: string;
   token: string;
   username: string;
+  email: string;
   newPassword: string;
+  orgUserId: string;
 }): Promise<ApiResponse> {
   try {
-    const { org, token, username, newPassword } = params;
-    const response = await apiClient.post(
-      `/org/${org}/action/ConfirmForgotPasswordReset/${token}/${username}`,
-      {
-        newPassword,
-      }
-    );
+    const { org, token, username, email, newPassword, orgUserId } = params;
+    const response = await apiClient.post('/auth/forgot-password', {
+      org,
+      token,
+      email,
+      userName: username,
+      password: newPassword,
+      orgUserId,
+    });
+
+    // Check if the API response indicates success
+    if (response.data?.success === false) {
+      // API returned success: false, treat as error
+      return {
+        success: false,
+        error: response.data.error || {
+          code: 'API_ERROR',
+          message: 'API request failed',
+          details: response.data,
+        },
+      };
+    }
+
     return { success: true, data: response.data };
   } catch (error) {
     return { success: false, error: handleApiError(error) };
