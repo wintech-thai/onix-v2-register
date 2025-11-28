@@ -66,10 +66,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/dictionaries ./dictionaries
 USER nextjs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 5000
 
 # Set environment variable for port
-ENV PORT=3000
+ENV PORT=5000
 ENV HOSTNAME="0.0.0.0"
 
 # Health check (uses PORT environment variable)
