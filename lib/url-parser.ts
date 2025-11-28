@@ -56,9 +56,10 @@ export const UserSignupDataSchema = z.object({
 });
 
 // Customer Email Verification Data Schema
+// Uses relaxed validation for admin-initiated flows (allows all characters)
 export const CustomerVerificationDataSchema = z.object({
   customerId: z.string().min(1, 'Customer ID is required'),
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, 'Name is required').max(255, 'Name must not exceed 255 characters'),
   email: z.string().email('Invalid email address'),
 });
 
