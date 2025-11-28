@@ -40,13 +40,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
 import { z } from 'zod';
 import { addLog, generateLogId } from '@/lib/api-logger';
+import { EXTERNAL_API_URL, REQUEST_TIMEOUT } from '@/lib/env';
 
 // ============================================
 // CONFIGURATION
 // ============================================
-
-const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL || 'https://api-dev.please-scan.com';
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+// EXTERNAL_API_URL and REQUEST_TIMEOUT imported from @/lib/env
+// EXTERNAL_API_URL automatically syncs with NEXT_PUBLIC_API_URL
 
 // ============================================
 // VALIDATION SCHEMA

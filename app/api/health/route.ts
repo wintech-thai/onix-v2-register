@@ -7,10 +7,18 @@
 
 import { NextResponse } from 'next/server';
 import { buildHealthPayload } from '@/lib/health/health-status';
+import { logEnvironmentInfo } from '@/lib/env';
 
 const processStartTime = Date.now();
+let hasLoggedEnv = false;
 
 export async function GET() {
+  // Log environment info on first health check
+  if (!hasLoggedEnv) {
+    logEnvironmentInfo();
+    hasLoggedEnv = true;
+  }
+
   const healthPayload = buildHealthPayload(processStartTime);
 
   return NextResponse.json(healthPayload, {
