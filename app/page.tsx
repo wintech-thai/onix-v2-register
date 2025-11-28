@@ -47,7 +47,7 @@ export default async function HomePage({ searchParams }: Props) {
         <p className="text-lg text-gray-600 mb-8">{dict.home.description}</p>
 
         {/* Info Box */}
-        <div className="bg-white rounded-lg shadow-md p-8 border border-gray-200">
+        {/*<div className="bg-white rounded-lg shadow-md p-8 border border-gray-200">
           <svg
             className="w-16 h-16 text-blue-500 mx-auto mb-4"
             fill="none"
@@ -63,10 +63,10 @@ export default async function HomePage({ searchParams }: Props) {
             />
           </svg>
           <p className="text-gray-700 text-base leading-relaxed">{dict.home.invalidLink}</p>
-        </div>
+        </div>*/}
 
         {/* Quick Links */}
-        <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
+        {/*<div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
           <a
             href="/api-logs"
             className="inline-flex items-center px-4 py-2 border border-green-600 text-sm font-medium rounded-md text-green-600 bg-white hover:bg-green-50 transition-colors"
@@ -101,7 +101,7 @@ export default async function HomePage({ searchParams }: Props) {
             </svg>
             View Demo
           </a>
-        </div>
+        </div>*/}
 
         {/* Footer Note */}
         <p className="mt-8 text-sm text-gray-500">Please Scan Registration System v1.0</p>

@@ -56,6 +56,7 @@ export const passwordSchema = z
  * Supports international Unicode characters (Thai, Chinese, accented letters, etc.)
  * \p{L} = Unicode letters (all languages)
  * \p{M} = Unicode marks (combining characters like Thai vowels/tone marks)
+ * Used for user-entered data (signup forms)
  */
 export const nameSchema = z
   .string()
@@ -65,6 +66,17 @@ export const nameSchema = z
     /^[\p{L}\p{M}\p{N}\s'-]+$/u,
     'Name can only contain letters, numbers, spaces, hyphens, and apostrophes'
   )
+  .trim();
+
+/**
+ * Admin name validation schema
+ * Used for admin-initiated flows (customer verification, user invite, forgot password)
+ * Allows all characters since admin controls the data
+ */
+export const adminNameSchema = z
+  .string()
+  .min(1, 'Name is required')
+  .max(255, 'Name must not exceed 255 characters')
   .trim();
 
 /**
@@ -122,10 +134,11 @@ export type UserSignupConfirmFormData = z.infer<typeof userSignupConfirmSchema>;
 /**
  * Customer Email Verification Form Schema
  * Read-only form with customer ID, name, and email
+ * Uses adminNameSchema since admin sends this data
  */
 export const customerEmailVerificationSchema = z.object({
   customerId: customerIdSchema,
-  name: nameSchema,
+  name: adminNameSchema,
   email: emailSchema,
 });
 
