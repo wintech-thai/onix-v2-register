@@ -17,10 +17,12 @@ The ONIX v2 Registration Microservice provides a complete user registration syst
 - 🔐 **Secure Authentication** - NextAuth.js v5 with JWT tokens
 - 📧 **Email Verification** - SendGrid/Resend integration
 - 📱 **SMS Verification** - Twilio/AWS SNS support
+- 🔄 **4 Independent Registration Flows** - Customer verification, user signup, user invite, password reset
 - ♿ **WCAG 2.1 Compliant** - Full accessibility support
 - 🎨 **Modern UI** - Tailwind CSS + shadcn/ui components
 - 🔒 **Security First** - Rate limiting, CSRF protection, input validation
 - 🚀 **High Performance** - Next.js 16 with Cache Components
+- 🌍 **Internationalization** - English and Thai support
 - 📱 **Mobile Responsive** - Mobile-first design
 - 🧪 **Fully Tested** - Unit, integration, and E2E tests
 - 📚 **Well Documented** - Comprehensive API and component docs
@@ -259,11 +261,12 @@ npx prisma studio
 
 ## 📚 Documentation
 
+- **[Registration Flows](docs/REGISTRATION_FLOWS.md)** - Complete flow diagrams and behavior
 - **[Setup Guide](docs/development/SETUP.md)** - Complete setup instructions
 - **[Next.js 16 Features](docs/development/NEXTJS-16-FEATURES.md)** - Next.js 16 migration guide
-- **[API Documentation](docs/api/)** - API endpoint documentation
+- **[API Documentation](docs/API_DOCUMENTATION.md)** - API endpoint documentation
 - **[Component Documentation](docs/components/)** - Component library docs
-- **[Deployment Guide](docs/deployment/)** - Production deployment
+- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment
 - **[Copilot Instructions](.github/copilot-instructions.md)** - Development workflow
 
 ---
@@ -464,6 +467,6 @@ Built with:
 
 ---
 
-**Last Updated**: 2025-01-15  
+**Last Updated**: 2025-01-18  
 **Next.js Version**: 16.0.1  
-**Version**: 1.0.0
+**Version**: 1.1.0 (Independent Flows)
