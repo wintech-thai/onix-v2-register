@@ -371,6 +371,35 @@ export async function confirmPasswordReset(params: {
   }
 }
 
+/**
+ * Confirms customer user creation
+ */
+export async function confirmCreateCustomerUser(params: {
+  org: string;
+  token: string;
+  email: string;
+  password: string;
+}): Promise<ApiResponse> {
+  try {
+    const response = await apiClient.post('/verify/customer-user-create', params);
+
+    if (response.data?.success === false) {
+      return {
+        success: false,
+        error: response.data.error || {
+          code: 'API_ERROR',
+          message: 'API request failed',
+          details: response.data,
+        },
+      };
+    }
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: handleApiError(error) };
+  }
+}
+
 // ============================================
 // EXPORT
 // ============================================
