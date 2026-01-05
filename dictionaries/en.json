@@ -89,6 +89,18 @@
       "confirmPassword": "Confirm New Password",
       "submitButton": "Reset Password",
       "success": "Your password has been reset successfully!"
+    },
+    "customerUserCreate": {
+      "title": "Activate Your Account",
+      "description": "Please set a password to activate your account.",
+      "submitButton": "Create Account",
+      "success": "Account created successfully!",
+      "passwordReqTitle": "Password Requirements:",
+      "passwordReq1": "Password must be between 7-15 characters",
+      "passwordReq2": "Password must contain at least one uppercase letter",
+      "passwordReq3": "Password must contain at least one lowercase letter",
+      "passwordReq4": "Password must contain at least one special character (!, @, or #)",
+      "securityNote": "For your security, this link will expire after 24 hours and can only be used once."
     }
   },
   "errors": {

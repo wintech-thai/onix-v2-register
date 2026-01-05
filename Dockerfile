@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies (including devDependencies for build stage)
-RUN npm ci && \
+RUN npm install && \
     npm cache clean --force
 
 # ============================================

@@ -29,6 +29,7 @@ export interface PasswordInputProps {
   showStrengthIndicator?: boolean;
   disabled?: boolean;
   className?: string;
+  maxLength?: number;
 }
 
 export default function PasswordInput({
@@ -44,6 +45,7 @@ export default function PasswordInput({
   autoComplete = 'new-password',
   showStrengthIndicator = false,
   disabled = false,
+  maxLength,
   className = '',
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -133,6 +135,7 @@ export default function PasswordInput({
           required={required}
           autoComplete={autoComplete}
           disabled={disabled}
+          maxLength={maxLength}
           className={inputClasses}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={
