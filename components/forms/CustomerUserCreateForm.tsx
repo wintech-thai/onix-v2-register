@@ -37,7 +37,7 @@ export default function CustomerUserCreateForm({
   organization,
   token,
   email,
-  // locale,
+  // locale, // Comment ไว้เพื่อป้องกัน Build Error (Unused variable)
   dictionary,
   customerId,
 }: CustomerUserCreateFormProps) {
@@ -49,6 +49,7 @@ export default function CustomerUserCreateForm({
   const t = {
     title: (dictionary.forms?.customerUserCreate?.title as string) || "Activate Your Account",
     description: (dictionary.forms?.customerUserCreate?.description as string) || "Please set a password to activate your account.",
+    orgLabel: (dictionary.forms?.common?.organization as string) || "Organization",
     emailLabel: (dictionary.forms?.common?.email as string) || "Email",
     passwordLabel: (dictionary.forms?.common?.password as string) || "Password",
     confirmPasswordLabel: (dictionary.forms?.common?.confirmPassword as string) || "Confirm Password",
@@ -107,7 +108,8 @@ export default function CustomerUserCreateForm({
       setIsSubmitting(false);
     }
   };
-  // Success
+
+  // Success View
   if (isSuccess) {
     return (
       <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto w-full">
@@ -134,6 +136,7 @@ export default function CustomerUserCreateForm({
     );
   }
 
+  // Form View
   return (
     <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto w-full">
       <div className="mb-6">
@@ -143,6 +146,8 @@ export default function CustomerUserCreateForm({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
         
+        <ReadOnlyField label={t.orgLabel} value={organization} />
+
         <ReadOnlyField label={t.emailLabel} value={email} />
 
         <div className="space-y-4">
