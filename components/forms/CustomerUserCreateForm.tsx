@@ -29,44 +29,42 @@ export interface CustomerUserCreateFormProps {
   token: string;
   email: string;
   locale: string;
-  dictionary: any;
-  customerId: string; // ✅ 1. ประกาศ Type
+  dictionary: Record<string, any>;
+  customerId: string;
 }
 
 export default function CustomerUserCreateForm({
   organization,
   token,
   email,
-  locale,
+  // locale,
   dictionary,
-  customerId, // ✅ 2. รับค่า (Destructure) ออกมาจาก Props
+  customerId,
 }: CustomerUserCreateFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // เตรียมข้อความภาษา
   const t = {
-    title: dictionary.forms?.customerUserCreate?.title || "Activate Your Account",
-    description: dictionary.forms?.customerUserCreate?.description || "Please set a password to activate your account.",
-    emailLabel: dictionary.forms?.common?.email || "Email",
-    passwordLabel: dictionary.forms?.common?.password || "Password",
-    confirmPasswordLabel: dictionary.forms?.common?.confirmPassword || "Confirm Password",
-    submitButton: dictionary.forms?.customerUserCreate?.submitButton || "Create Account",
-    successTitle: dictionary.forms?.customerUserCreate?.success || "Account created successfully!",
+    title: (dictionary.forms?.customerUserCreate?.title as string) || "Activate Your Account",
+    description: (dictionary.forms?.customerUserCreate?.description as string) || "Please set a password to activate your account.",
+    emailLabel: (dictionary.forms?.common?.email as string) || "Email",
+    passwordLabel: (dictionary.forms?.common?.password as string) || "Password",
+    confirmPasswordLabel: (dictionary.forms?.common?.confirmPassword as string) || "Confirm Password",
+    submitButton: (dictionary.forms?.customerUserCreate?.submitButton as string) || "Create Account",
+    successTitle: (dictionary.forms?.customerUserCreate?.success as string) || "Account created successfully!",
     successDesc: "Your account has been successfully created. You can now log in.",
-    loading: dictionary.common?.loading || "Loading...",
-    reqTitle: dictionary.forms?.customerUserCreate?.passwordReqTitle || "Password Requirements:",
-    req1: dictionary.forms?.customerUserCreate?.passwordReq1 || "Password must be between 7-15 characters",
-    req2: dictionary.forms?.customerUserCreate?.passwordReq2 || "Password must contain at least one uppercase letter",
-    req3: dictionary.forms?.customerUserCreate?.passwordReq3 || "Password must contain at least one lowercase letter",
-    req4: dictionary.forms?.customerUserCreate?.passwordReq4 || "Password must contain at least one special character (!, @, or #)",
-    securityNote: dictionary.forms?.customerUserCreate?.securityNote || "For your security, this link will expire after 24 hours and can only be used once."
+    loading: (dictionary.common?.loading as string) || "Loading...",
+    reqTitle: (dictionary.forms?.customerUserCreate?.passwordReqTitle as string) || "Password Requirements:",
+    req1: (dictionary.forms?.customerUserCreate?.passwordReq1 as string) || "Password must be between 7-15 characters",
+    req2: (dictionary.forms?.customerUserCreate?.passwordReq2 as string) || "Password must contain at least one uppercase letter",
+    req3: (dictionary.forms?.customerUserCreate?.passwordReq3 as string) || "Password must contain at least one lowercase letter",
+    req4: (dictionary.forms?.customerUserCreate?.passwordReq4 as string) || "Password must contain at least one special character (!, @, or #)",
+    securityNote: (dictionary.forms?.customerUserCreate?.securityNote as string) || "For your security, this link will expire after 24 hours and can only be used once."
   };
 
   const {
-    register,
     handleSubmit,
     formState: { errors },
     watch,
@@ -93,7 +91,7 @@ export default function CustomerUserCreateForm({
         token,
         email,
         password: data.password,
-        customerId, // ✅ 3. ส่งค่าต่อไปยัง API Client
+        customerId,
       });
 
       if (result.success) {
@@ -123,6 +121,7 @@ export default function CustomerUserCreateForm({
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.successTitle}</h2>
             <p className="text-gray-600">{t.successDesc}</p>
           </div>
+          
           {/* <Button 
             variant="secondary"
             className="mt-4 w-full"
@@ -158,6 +157,7 @@ export default function CustomerUserCreateForm({
             autoComplete="new-password"
             showStrengthIndicator
             disabled={isSubmitting}
+            maxLength={15}
           />
 
           <PasswordInput
@@ -170,10 +170,11 @@ export default function CustomerUserCreateForm({
             required
             autoComplete="new-password"
             disabled={isSubmitting}
+            maxLength={15}
           />
         </div>
 
-        {/* --- Password Requirements --- */}
+        {/* --- Password Requirements Info --- */}
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
           <h3 className="text-blue-900 font-medium mb-2 text-sm">{t.reqTitle}</h3>
           <ul className="list-disc list-inside text-sm text-blue-800 space-y-1 ml-1">
