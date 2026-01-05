@@ -42,7 +42,6 @@ const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    // Log request (structured logging)
     const logData = {
       timestamp: new Date().toISOString(),
       type: 'API_REQUEST',
@@ -379,6 +378,7 @@ export async function confirmCreateCustomerUser(params: {
   token: string;
   email: string;
   password: string;
+  customerId: string;
 }): Promise<ApiResponse> {
   try {
     const response = await apiClient.post('/verify/customer-user-create', params);
