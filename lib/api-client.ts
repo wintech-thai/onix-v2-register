@@ -322,7 +322,7 @@ export async function confirmEmailVerification(params: {
     // Return the response data which may contain username for redirect
     return {
       success: true,
-      data: response.data?.data || response.data, // Handle both {data: {...}} and direct response
+      data: response.data?.data || response.data, 
     };
   } catch (error) {
     return { success: false, error: handleApiError(error) };
@@ -400,8 +400,43 @@ export async function confirmCreateCustomerUser(params: {
   }
 }
 
-// ============================================
-// EXPORT
-// ============================================
+
+
+/**
+ * Confirms customer forgot password reset
+ */
+export async function confirmCustomerResetPassword(params: {
+  org: string;
+  token: string;
+  username: string; 
+  password: string;
+  customerId: string;
+}): Promise<ApiResponse> {
+  try {
+    const response = await apiClient.post('/verify/customer-reset-password', {
+      org: params.org,
+      token: params.token,
+      userName: params.username,
+      password: params.password,
+      customerId: params.customerId
+    });
+
+    if (response.data?.success === false) {
+      return {
+        success: false,
+        error: response.data.error || {
+          code: 'API_ERROR',
+          message: 'API request failed',
+          details: response.data,
+        },
+      };
+    }
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: handleApiError(error) };
+  }
+}
+
 
 export default apiClient;
