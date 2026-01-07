@@ -1,15 +1,10 @@
+// File: lib/url-parser.ts
+
 /**
  * URL Parser & Validation Utilities
  *
  * Parses and validates registration URLs following the pattern:
  * https://<host>/<organization>/<registration-type>/<token>?data=<base64_of_json_string>
- *
- * Supports:
- * - user-invite-confirm
- * - user-signup-confirm
- * - customer-email-verification
- * - forgot-password
- * - customer-user-create
  */
 
 import { z } from 'zod';
@@ -23,14 +18,16 @@ export type RegistrationType =
   | 'user-signup-confirm'
   | 'customer-email-verification'
   | 'forgot-password'
-  | 'customer-user-create';
+  | 'customer-user-create'
+  | 'customer-forgot-password'; 
 
 export const REGISTRATION_TYPES: RegistrationType[] = [
   'user-invite-confirm',
   'user-signup-confirm',
   'customer-email-verification',
   'forgot-password',
-  'customer-user-create', 
+  'customer-user-create',
+  'customer-forgot-password',
 ];
 
 // ============================================
@@ -71,11 +68,15 @@ export const ForgotPasswordDataSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
-// เพิ่ม Schema สำหรับ Customer User Create 
+// Customer User Create Data Schema
 export const CustomerUserCreateDataSchema = z.object({
   email: z.string().email('Invalid email address'),
   customerId: z.string().min(1),
-  // username หรือ field อื่นๆ ถ้าจำเป็น สามารถเพิ่มได้ที่นี่
+});
+
+export const CustomerResetPasswordDataSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  customerId: z.string().min(1, 'Customer ID is required'),
 });
 
 // Type inference from schemas
@@ -83,7 +84,8 @@ export type UserInviteData = z.infer<typeof UserInviteDataSchema>;
 export type UserSignupData = z.infer<typeof UserSignupDataSchema>;
 export type CustomerVerificationData = z.infer<typeof CustomerVerificationDataSchema>;
 export type ForgotPasswordData = z.infer<typeof ForgotPasswordDataSchema>;
-export type CustomerUserCreateData = z.infer<typeof CustomerUserCreateDataSchema>; 
+export type CustomerUserCreateData = z.infer<typeof CustomerUserCreateDataSchema>;
+export type CustomerResetPasswordData = z.infer<typeof CustomerResetPasswordDataSchema>;
 
 // Union type for all data types
 export type RegistrationData =
@@ -91,7 +93,8 @@ export type RegistrationData =
   | UserSignupData
   | CustomerVerificationData
   | ForgotPasswordData
-  | CustomerUserCreateData; 
+  | CustomerUserCreateData
+  | CustomerResetPasswordData;
 
 // ============================================
 // RESULT TYPES
@@ -199,6 +202,7 @@ function transformDataKeys(data: any, registrationType?: RegistrationType): unkn
     invitedBy: 'invitedBy',
   };
 
+  // Handle 'Id' field if present
   if ('Id' in data || 'id' in data) {
     const idValue = data.Id || data.id;
     if (registrationType === 'customer-email-verification') {
@@ -213,10 +217,12 @@ function transformDataKeys(data: any, registrationType?: RegistrationType): unkn
     }
   }
 
+  // Handle explicit customerId
   if ('customerId' in data && !transformed.customerId) {
     transformed.customerId = data.customerId;
   }
 
+  // Standard Key Mapping
   for (const [externalKey, internalKey] of Object.entries(keyMappings)) {
     if (externalKey in data) {
       const value = data[externalKey];
@@ -224,11 +230,21 @@ function transformDataKeys(data: any, registrationType?: RegistrationType): unkn
     }
   }
 
+  // CamelCase fallback
   for (const key in data) {
     if (!(key in keyMappings) && key !== 'Id' && key !== 'id' && key !== 'customerId') {
       const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
       const value = data[key];
       transformed[camelKey] = value === null ? undefined : value;
+    }
+  }
+
+  if (registrationType === 'customer-forgot-password') {
+    if (!transformed.customerId && transformed.orgUserId) {
+      transformed.customerId = transformed.orgUserId;
+    }
+    if (!transformed.customerId && data.OrgUserId) {
+      transformed.customerId = data.OrgUserId;
     }
   }
 
@@ -255,8 +271,11 @@ export function validateData(
       case 'forgot-password':
         schema = ForgotPasswordDataSchema;
         break;
-      case 'customer-user-create': 
+      case 'customer-user-create':
         schema = CustomerUserCreateDataSchema;
+        break;
+      case 'customer-forgot-password': 
+        schema = CustomerResetPasswordDataSchema;
         break;
       default:
         return {
@@ -387,9 +406,8 @@ export function parseRegistrationUrl(url: string): ParseResult<ParsedRegistratio
   }
 }
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
+// ... Helper functions (isTokenExpired, generateRegistrationUrl, etc.) remain the same
+// but are included if you need the full file as requested.
 
 export function isTokenExpired(timestampMs: number): boolean {
   const now = Date.now();
