@@ -1,4 +1,4 @@
-name: onix-v2-register
+name: please-scan-register
 permissions:
   contents: read
   actions: read
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ "onix-register" ]
+        service: [ "please-scan-register" ]
     outputs:
       imageTag: ${{ steps.prep.outputs.version }}
       autoDeployEnv: ${{ steps.prep.outputs.deployEnv }}
@@ -29,7 +29,7 @@ jobs:
       id: prep
       run: |
         DOCKER_IMAGE=onix-register/${{matrix.service}}
-        GCR_IMAGE=asia-southeast1-docker.pkg.dev/its-artifact-commons/onix-v2/${{matrix.service}}
+        GCR_IMAGE=asia-southeast1-docker.pkg.dev/its-artifact-commons/please-scan/${{matrix.service}}
         VERSION=latest
         GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")
         ENV=dev
@@ -122,7 +122,7 @@ jobs:
       with:
         status: ${{ job.status }}
         fields: repo,message,commit,author,ref,workflow # selectable (default: repo,message)
-        text: "Start deploying [onix-register] [${{ needs.build1.outputs.imageTag }}] to [${{ needs.build1.outputs.autoDeployEnv }}]..."
+        text: "Start deploying [please-scan-register] [${{ needs.build1.outputs.imageTag }}] to [${{ needs.build1.outputs.autoDeployEnv }}]..."
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_URL }} # required
 
@@ -132,16 +132,16 @@ jobs:
       run: |
         export ENVIRONMENT=${{ needs.build1.outputs.autoDeployEnv }}
         export ARGOCD_BRANCH=${{ needs.build1.outputs.autoDeployBranch }}
-        export VALUE_FILE_DIR="values-files/onix-register"
-        export VALUE_FILE=${VALUE_FILE_DIR}/onix-register-03-${ARGOCD_BRANCH}-image-tag.yaml
+        export VALUE_FILE_DIR="values-files/please-scan-register"
+        export VALUE_FILE=${VALUE_FILE_DIR}/please-scan-register-03-${ARGOCD_BRANCH}-image-tag.yaml
         export IMAGE_TAG1=${{ needs.build1.outputs.imageTag }}
         git config --global user.email "cicd-auto@onix.com"
         git config --global user.name "CICD"
 
-        git clone "https://cicd-token:${GH_TOKEN}@github.com/wintech-thai/onix-v2-argocd-apps" deployment
+        git clone "https://cicd-token:${GH_TOKEN}@github.com/wintech-thai/please-scan-control-plane" deployment
         cd deployment
         git checkout ${ARGOCD_BRANCH}
-        cp ${VALUE_FILE_DIR}/onix-register-02-image-tag-template.yaml ${VALUE_FILE}
+        cp ${VALUE_FILE_DIR}/please-scan-register-02-image-tag-template.yaml ${VALUE_FILE}
         sed -i "s#<<image-tag>>#${IMAGE_TAG1}#g" ${VALUE_FILE}
         ls -lrt
         cat ${VALUE_FILE}
@@ -154,6 +154,6 @@ jobs:
       with:
         status: ${{ job.status }}
         fields: repo,message,commit,author,ref,workflow # selectable (default: repo,message)
-        text: "Done deploying [onix-register] [${{ needs.build1.outputs.imageTag }}] to [${{ needs.build1.outputs.autoDeployEnv }}]"
+        text: "Done deploying [please-scan-register] [${{ needs.build1.outputs.imageTag }}] to [${{ needs.build1.outputs.autoDeployEnv }}]"
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_URL }} # required
